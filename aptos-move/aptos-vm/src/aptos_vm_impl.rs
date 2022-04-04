@@ -7,7 +7,7 @@ use crate::{
     data_cache::RemoteStorage,
     errors::{convert_epilogue_error, convert_prologue_error, expect_only_successful_execution},
     logging::AdapterLogSchema,
-    move_vm_ext::{MoveVmExt, SessionExt, SessionId},
+    move_vm_ext::{MoveResolverExt, MoveVmExt, SessionExt, SessionId},
     transaction_metadata::TransactionMetadata,
 };
 use aptos_crypto::HashValue;
@@ -38,7 +38,7 @@ use move_core_types::{
     identifier::{IdentStr, Identifier},
     language_storage::{ModuleId, TypeTag},
     move_resource::MoveStructType,
-    resolver::{MoveResolver, ResourceResolver},
+    resolver::ResourceResolver,
     value::{serialize_values, MoveValue},
 };
 use move_vm_runtime::{logging::expect_no_verification_errors, session::Session};
@@ -249,7 +249,7 @@ impl AptosVMImpl {
 
     /// Run the prologue of a transaction by calling into either `SCRIPT_PROLOGUE_NAME` function
     /// or `MULTI_AGENT_SCRIPT_PROLOGUE_NAME` function stored in the `ACCOUNT_MODULE` on chain.
-    pub(crate) fn run_script_prologue<S: MoveResolver>(
+    pub(crate) fn run_script_prologue<S: MoveResolverExt>(
         &self,
         session: &mut SessionExt<S>,
         txn_data: &TransactionMetadata,
@@ -315,7 +315,7 @@ impl AptosVMImpl {
 
     /// Run the prologue of a transaction by calling into `MODULE_PROLOGUE_NAME` function stored
     /// in the `ACCOUNT_MODULE` on chain.
-    pub(crate) fn run_module_prologue<S: MoveResolver>(
+    pub(crate) fn run_module_prologue<S: MoveResolverExt>(
         &self,
         session: &mut SessionExt<S>,
         txn_data: &TransactionMetadata,
@@ -354,7 +354,7 @@ impl AptosVMImpl {
 
     /// Run the epilogue of a transaction by calling into `EPILOGUE_NAME` function stored
     /// in the `ACCOUNT_MODULE` on chain.
-    pub(crate) fn run_success_epilogue<S: MoveResolver>(
+    pub(crate) fn run_success_epilogue<S: MoveResolverExt>(
         &self,
         session: &mut SessionExt<S>,
         gas_status: &mut GasStatus,
@@ -395,7 +395,7 @@ impl AptosVMImpl {
 
     /// Run the failure epilogue of a transaction by calling into `USER_EPILOGUE_NAME` function
     /// stored in the `ACCOUNT_MODULE` on chain.
-    pub(crate) fn run_failure_epilogue<S: MoveResolver>(
+    pub(crate) fn run_failure_epilogue<S: MoveResolverExt>(
         &self,
         session: &mut SessionExt<S>,
         gas_status: &mut GasStatus,
@@ -436,7 +436,7 @@ impl AptosVMImpl {
 
     /// Run the prologue of a transaction by calling into `PROLOGUE_NAME` function stored
     /// in the `WRITESET_MODULE` on chain.
-    pub(crate) fn run_writeset_prologue<S: MoveResolver>(
+    pub(crate) fn run_writeset_prologue<S: MoveResolverExt>(
         &self,
         session: &mut SessionExt<S>,
         txn_data: &TransactionMetadata,
@@ -470,7 +470,7 @@ impl AptosVMImpl {
 
     /// Run the epilogue of a transaction by calling into `WRITESET_EPILOGUE_NAME` function stored
     /// in the `WRITESET_MODULE` on chain.
-    pub(crate) fn run_writeset_epilogue<S: MoveResolver>(
+    pub(crate) fn run_writeset_epilogue<S: MoveResolverExt>(
         &self,
         session: &mut SessionExt<S>,
         txn_data: &TransactionMetadata,
@@ -502,7 +502,7 @@ impl AptosVMImpl {
             })
     }
 
-    pub fn new_session<'r, R: MoveResolver>(
+    pub fn new_session<'r, R: MoveResolverExt>(
         &self,
         r: &'r R,
         session_id: SessionId,
@@ -510,7 +510,7 @@ impl AptosVMImpl {
         self.move_vm.new_session(r, session_id)
     }
 
-    pub fn load_module<'r, R: MoveResolver>(
+    pub fn load_module<'r, R: MoveResolverExt>(
         &self,
         module_id: &ModuleId,
         remote: &'r R,
@@ -613,7 +613,7 @@ pub fn convert_changeset_and_events_cached<C: AccessPathCache>(
     Ok((ws, events))
 }
 
-pub(crate) fn charge_global_write_gas_usage<R: MoveResolver>(
+pub(crate) fn charge_global_write_gas_usage<R: MoveResolverExt>(
     gas_status: &mut GasStatus,
     session: &Session<R>,
     sender: &AccountAddress,
@@ -630,7 +630,7 @@ pub(crate) fn charge_global_write_gas_usage<R: MoveResolver>(
         .map_err(|p_err| p_err.finish(Location::Undefined).into_vm_status())
 }
 
-pub(crate) fn get_transaction_output<A: AccessPathCache, S: MoveResolver>(
+pub(crate) fn get_transaction_output<A: AccessPathCache, S: MoveResolverExt>(
     ap_cache: &mut A,
     session: SessionExt<S>,
     gas_left: GasUnits<GasCarrier>,
@@ -658,7 +658,7 @@ pub(crate) fn get_gas_currency_code(txn: &SignedTransaction) -> Result<Identifie
     }
 }
 
-pub(crate) fn get_currency_info<S: MoveResolver>(
+pub(crate) fn get_currency_info<S: MoveResolverExt>(
     currency_code: &IdentStr,
     remote_cache: &S,
 ) -> Result<CurrencyInfoResource, VMStatus> {

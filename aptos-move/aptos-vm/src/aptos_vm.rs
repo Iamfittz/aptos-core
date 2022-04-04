@@ -15,7 +15,7 @@ use crate::{
     data_cache::{RemoteStorage, StateViewCache},
     errors::expect_only_successful_execution,
     logging::AdapterLogSchema,
-    move_vm_ext::{SessionExt, SessionId},
+    move_vm_ext::{MoveResolverExt, SessionExt, SessionId},
     script_to_script_function,
     system_module_names::*,
     transaction_metadata::TransactionMetadata,
@@ -46,7 +46,6 @@ use move_core_types::{
     gas_schedule::{GasAlgebra, GasUnits},
     identifier::IdentStr,
     language_storage::ModuleId,
-    resolver::MoveResolver,
     transaction_argument::convert_txn_args,
     value::{serialize_values, MoveValue},
 };
@@ -160,7 +159,7 @@ impl AptosVM {
     }
 
     /// Load a module into its internal MoveVM's code cache.
-    pub fn load_module<S: MoveResolver>(
+    pub fn load_module<S: MoveResolverExt>(
         &self,
         module_id: &ModuleId,
         state: &S,
@@ -170,7 +169,7 @@ impl AptosVM {
 
     /// Generates a transaction output for a transaction that encountered errors during the
     /// execution process. This is public for now only for tests.
-    pub fn failed_transaction_cleanup<S: MoveResolver>(
+    pub fn failed_transaction_cleanup<S: MoveResolverExt>(
         &self,
         error_code: VMStatus,
         gas_status: &mut GasStatus,
@@ -190,7 +189,7 @@ impl AptosVM {
         .1
     }
 
-    fn failed_transaction_cleanup_and_keep_vm_status<S: MoveResolver>(
+    fn failed_transaction_cleanup_and_keep_vm_status<S: MoveResolverExt>(
         &self,
         error_code: VMStatus,
         gas_status: &mut GasStatus,
@@ -235,7 +234,7 @@ impl AptosVM {
         }
     }
 
-    fn success_transaction_cleanup<S: MoveResolver>(
+    fn success_transaction_cleanup<S: MoveResolverExt>(
         &self,
         mut session: SessionExt<S>,
         gas_status: &mut GasStatus,
@@ -264,7 +263,7 @@ impl AptosVM {
         ))
     }
 
-    fn execute_script_or_script_function<S: MoveResolver>(
+    fn execute_script_or_script_function<S: MoveResolverExt>(
         &self,
         mut session: SessionExt<S>,
         gas_status: &mut GasStatus,
@@ -356,7 +355,7 @@ impl AptosVM {
         }
     }
 
-    fn execute_modules<S: MoveResolver>(
+    fn execute_modules<S: MoveResolverExt>(
         &self,
         mut session: SessionExt<S>,
         gas_status: &mut GasStatus,
@@ -397,7 +396,7 @@ impl AptosVM {
         )
     }
 
-    pub(crate) fn execute_user_transaction<S: MoveResolver>(
+    pub(crate) fn execute_user_transaction<S: MoveResolverExt>(
         &self,
         storage: &S,
         txn: &SignatureCheckedTransaction,
@@ -490,7 +489,7 @@ impl AptosVM {
         }
     }
 
-    fn execute_writeset<S: MoveResolver>(
+    fn execute_writeset<S: MoveResolverExt>(
         &self,
         storage: &S,
         writeset_payload: &WriteSetPayload,
@@ -561,7 +560,7 @@ impl AptosVM {
         Ok(())
     }
 
-    pub(crate) fn process_waypoint_change_set<S: MoveResolver + StateView>(
+    pub(crate) fn process_waypoint_change_set<S: MoveResolverExt + StateView>(
         &self,
         storage: &S,
         writeset_payload: WriteSetPayload,
@@ -586,7 +585,7 @@ impl AptosVM {
         ))
     }
 
-    pub(crate) fn process_block_prologue<S: MoveResolver>(
+    pub(crate) fn process_block_prologue<S: MoveResolverExt>(
         &self,
         storage: &S,
         block_metadata: BlockMetadata,
@@ -640,7 +639,7 @@ impl AptosVM {
         Ok((VMStatus::Executed, output))
     }
 
-    pub(crate) fn process_writeset_transaction<S: MoveResolver + StateView>(
+    pub(crate) fn process_writeset_transaction<S: MoveResolverExt + StateView>(
         &self,
         storage: &S,
         txn: &SignatureCheckedTransaction,
@@ -695,7 +694,7 @@ impl AptosVM {
         )
     }
 
-    pub fn execute_writeset_transaction<S: MoveResolver + StateView>(
+    pub fn execute_writeset_transaction<S: MoveResolverExt + StateView>(
         &self,
         storage: &S,
         writeset_payload: &WriteSetPayload,
@@ -867,7 +866,7 @@ impl VMValidator for AptosVM {
 }
 
 impl VMAdapter for AptosVM {
-    fn new_session<'r, R: MoveResolver>(
+    fn new_session<'r, R: MoveResolverExt>(
         &self,
         remote: &'r R,
         session_id: SessionId,
@@ -887,7 +886,7 @@ impl VMAdapter for AptosVM {
         Ok(())
     }
 
-    fn get_gas_price<S: MoveResolver>(
+    fn get_gas_price<S: MoveResolverExt>(
         &self,
         txn: &SignedTransaction,
         remote_cache: &S,
@@ -909,7 +908,7 @@ impl VMAdapter for AptosVM {
         Ok(normalized_gas_price)
     }
 
-    fn run_prologue<S: MoveResolver>(
+    fn run_prologue<S: MoveResolverExt>(
         &self,
         session: &mut SessionExt<S>,
         transaction: &SignatureCheckedTransaction,
@@ -950,7 +949,7 @@ impl VMAdapter for AptosVM {
             .any(|event| *event.key() == new_epoch_event_key)
     }
 
-    fn execute_single_transaction<S: MoveResolver + StateView>(
+    fn execute_single_transaction<S: MoveResolverExt + StateView>(
         &self,
         txn: &PreprocessedTransaction,
         data_cache: &S,
